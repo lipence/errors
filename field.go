@@ -10,7 +10,6 @@ import (
 	_ "go.uber.org/zap/zapcore"
 )
 
-//go:linkname Field go.uber.org/zap.Field
 type Field = zapcore.Field
 
 //go:linkname Any go.uber.org/zap.Any
