@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"bytes"
 	"sync"
 
 	"go.uber.org/zap/buffer"
@@ -208,7 +207,8 @@ func (e *node) InfoStack(parent *node) []nodeInfoItem {
 }
 
 func (e *node) message() string {
-	var b = bytes.Buffer{}
+	var b = getBytesBuffer()
+	defer returnBytesBuffer(b)
 	for _, infoItem := range e.InfoStack(nil) {
 		if infoItem.Underlying != nil {
 			b.WriteRune('\n')

@@ -6,19 +6,19 @@ import (
 	"sync"
 )
 
-var jsonEncBuffers = sync.Pool{
+var bytesBuffers = sync.Pool{
 	New: func() interface{} {
 		return new(bytes.Buffer)
 	},
 }
 
-func GetBuffer() *bytes.Buffer {
-	return jsonEncBuffers.Get().(*bytes.Buffer)
+func getBytesBuffer() *bytes.Buffer {
+	return bytesBuffers.Get().(*bytes.Buffer)
 }
 
-func PutBuffer(buf *bytes.Buffer) {
+func returnBytesBuffer(buf *bytes.Buffer) {
 	buf.Reset()
-	jsonEncBuffers.Put(buf)
+	bytesBuffers.Put(buf)
 }
 
 func toJSONMarshalable(err error) error {
@@ -40,12 +40,12 @@ func (e JsonErr) MarshalJSON() ([]byte, error) {
 }
 
 func marshalJSONWithoutEscape(source interface{}) ([]byte, error) {
-	var buffer = GetBuffer()
-	defer PutBuffer(buffer)
+	var buffer = getBytesBuffer()
+	defer returnBytesBuffer(buffer)
 	var encoder = json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(source); err != nil {
 		return nil, err
 	}
-	return buffer.Bytes(), nil
+	return bytes.TrimSuffix(buffer.Bytes(), []byte{'\n'}), nil
 }
