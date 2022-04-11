@@ -1,7 +1,5 @@
 package errors
 
-import "encoding/json"
-
 type Message interface {
 	Code() string
 	Message() string
@@ -41,7 +39,7 @@ func (e *underlying) Error() string {
 }
 
 func (e *underlying) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.Error())
+	return marshalJSONWithoutEscape(e.Error())
 }
 
 func NewUnderlying(code, message string) *underlying {

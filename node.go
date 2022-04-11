@@ -2,7 +2,6 @@ package errors
 
 import (
 	"bytes"
-	"encoding/json"
 	"sync"
 
 	"go.uber.org/zap/buffer"
@@ -185,14 +184,14 @@ func (e *node) InfoStack(parent *node) []nodeInfoItem {
 			stack = causeNode.InfoStack(e)
 		} else if e.underlying != nil {
 			stack = append(stack, nodeInfoItem{
-				Underlying: JSONMarshallable(e.cause),
+				Underlying: toJSONMarshalable(e.cause),
 			})
 		} else {
-			nodeItem = nodeInfoItem{Underlying: JSONMarshallable(e.cause)}
+			nodeItem = nodeInfoItem{Underlying: toJSONMarshalable(e.cause)}
 		}
 	}
 	if e.underlying != nil {
-		nodeItem = nodeInfoItem{Underlying: JSONMarshallable(e.underlying)}
+		nodeItem = nodeInfoItem{Underlying: toJSONMarshalable(e.underlying)}
 	}
 	e.dataRWM.RLock()
 	if len(e.data) > 0 {
@@ -217,7 +216,7 @@ func (e *node) message() string {
 		}
 		if len(infoItem.Data) > 0 {
 			b.Write([]byte{':', '\x20'})
-			if data, err := json.Marshal(infoItem.Data); err == nil {
+			if data, err := marshalJSONWithoutEscape(infoItem.Data); err == nil {
 				b.Write(data)
 			} else {
 				b.WriteString(err.Error())
@@ -234,5 +233,5 @@ func (e *node) message() string {
 }
 
 func (e *node) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.InfoStack(nil))
+	return marshalJSONWithoutEscape(e.InfoStack(nil))
 }
