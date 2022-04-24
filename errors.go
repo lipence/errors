@@ -40,6 +40,9 @@ func New(code, msg string) *underlying {
 }
 
 func Because(underlying *underlying, cause error, fields ...Field) *node {
+	if cause == nil {
+		return nil
+	}
 	n := &node{
 		dataRWM:    sync.RWMutex{},
 		underlying: underlying,
@@ -51,9 +54,11 @@ func Because(underlying *underlying, cause error, fields ...Field) *node {
 
 func From(src interface{}) error {
 	switch s := src.(type) {
-	case *underlying:
-		return s
+	case nil:
+		return nil
 	case *node:
+		return s
+	case *underlying:
 		return s
 	case error:
 		return s
@@ -63,6 +68,9 @@ func From(src interface{}) error {
 }
 
 func Note(err error, fields ...Field) *node {
+	if err == nil {
+		return nil
+	}
 	if n, ok := err.(*node); ok {
 		return n.WithData(fields...)
 	}
@@ -74,11 +82,14 @@ func Note(err error, fields ...Field) *node {
 	return n.WithData(fields...)
 }
 
-func Is(src error, target error) bool {
-	if c, ok := src.(ComparableErr); ok {
+func Is(err error, target error) bool {
+	if target == nil {
+		return err == target
+	}
+	if c, ok := err.(ComparableErr); ok {
 		return c.Is(target)
 	}
-	return sysErr.Is(src, target)
+	return sysErr.Is(err, target)
 }
 
 func Data(src error, key string, r bool) (interface{}, bool) {
