@@ -25,14 +25,18 @@ func toJSONMarshalable(err error) error {
 	if _, ok := err.(json.Marshaler); ok {
 		return err
 	}
-	return JsonErr{err}
+	return AsJsonMarshaller(err)
 }
 
-type JsonErr struct {
+type jsonErr struct {
 	error
 }
 
-func (e JsonErr) MarshalJSON() ([]byte, error) {
+func AsJsonMarshaller(err error) error {
+	return jsonErr{err}
+}
+
+func (e jsonErr) MarshalJSON() ([]byte, error) {
 	if e.error == nil {
 		return []byte("null"), nil
 	}
