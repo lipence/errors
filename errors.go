@@ -152,10 +152,16 @@ func (e BatchErrors) MarshalJSON() ([]byte, error) {
 }
 
 func Batch(errs []error) error {
-	if len(errs) == 0 {
+	var _errs = make([]error, 0, len(errs))
+	for _, _err := range errs {
+		if _err != nil {
+			_errs = append(_errs, _err)
+		}
+	}
+	if len(_errs) == 0 {
 		return nil
 	}
-	return BatchErrors(errs)
+	return BatchErrors(_errs)
 }
 
 func Unbatch(errs error) ([]error, bool) {
