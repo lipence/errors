@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"encoding/json"
 	sysErr "errors"
 	"fmt"
 	"sync"
@@ -126,4 +127,49 @@ func CausedByNode(src error, target error, deepFirst bool, causeReceiver *error)
 		return true
 	}
 	return false
+}
+
+type BatchErrors []error
+
+func (e BatchErrors) Error() string {
+	var buf = getBytesBuffer()
+	defer returnBytesBuffer(buf)
+	buf.WriteString("Multiple error occurred:")
+	for i, err := range e {
+		if err != nil {
+			buf.WriteString(fmt.Sprintf("\n[%d] %v", i, err))
+		}
+	}
+	return buf.String()
+}
+
+func (e BatchErrors) MarshalJSON() ([]byte, error) {
+	var errArr = e
+	for i, err := range errArr {
+		errArr[i] = AsJsonMarshaller(err)
+	}
+	return json.Marshal(errArr)
+}
+
+func Batch(errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+	return BatchErrors(errs)
+}
+
+func Unbatch(errs error) ([]error, bool) {
+	if errs == nil {
+		return nil, true
+	}
+	errArr, ok := errs.(BatchErrors)
+	if !ok {
+		return nil, false
+	}
+	for i, err := range errArr {
+		if je, isJsonErr := err.(jsonErr); isJsonErr {
+			errArr[i] = je.error
+		}
+	}
+	return errArr, true
 }
