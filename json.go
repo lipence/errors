@@ -33,6 +33,9 @@ type jsonErr struct {
 }
 
 func AsJsonMarshaller(err error) error {
+	if err == nil {
+		return nil
+	}
 	return jsonErr{err}
 }
 

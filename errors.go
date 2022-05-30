@@ -83,7 +83,7 @@ func Note(err error, fields ...Field) *node {
 }
 
 func Is(err error, target error) bool {
-	if target == nil {
+	if err == nil || target == nil {
 		return err == target
 	}
 	if c, ok := err.(ComparableErr); ok {
