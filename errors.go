@@ -158,10 +158,14 @@ func Batch(errs []error) error {
 			_errs = append(_errs, _err)
 		}
 	}
-	if len(_errs) == 0 {
+	switch len(_errs) {
+	case 0:
 		return nil
+	case 1:
+		return _errs[0]
+	default:
+		return BatchErrors(_errs)
 	}
-	return BatchErrors(_errs)
 }
 
 func Unbatch(errs error) ([]error, bool) {
