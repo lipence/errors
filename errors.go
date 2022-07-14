@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	sysErr "errors"
 	"fmt"
-	"sync"
+	"runtime"
 )
 
 const maxStackDepth = 64
@@ -40,17 +40,17 @@ func New(code, msg string) *underlying {
 	return &underlying{code: code, message: msg}
 }
 
-func Because(underlying *underlying, cause error, fields ...Field) *node {
+func Because(underlying *underlying, cause error, fields ...Field) error {
 	if cause == nil {
 		return nil
 	}
 	n := &node{
-		dataRWM:    sync.RWMutex{},
+		data:       fields,
 		underlying: underlying,
 		cause:      cause,
 	}
 	n.trace(1)
-	return n.WithData(fields...)
+	return n
 }
 
 func From(src interface{}) error {
@@ -61,6 +61,10 @@ func From(src interface{}) error {
 		return s
 	case *underlying:
 		return s
+	case runtime.Error:
+		n := &node{cause: s}
+		n.trace(1)
+		return n
 	case error:
 		return s
 	default:
@@ -68,19 +72,20 @@ func From(src interface{}) error {
 	}
 }
 
-func Note(err error, fields ...Field) *node {
+func Note(err error, fields ...Field) error {
 	if err == nil {
 		return nil
 	}
 	if n, ok := err.(*node); ok {
-		return n.WithData(fields...)
+		if len(fields) > 0 {
+			n = n.clone()
+			n.data = append(n.data, fields...)
+		}
+		return n
 	}
-	n := &node{
-		dataRWM: sync.RWMutex{},
-		cause:   err,
-	}
+	n := &node{data: fields, cause: err}
 	n.trace(1)
-	return n.WithData(fields...)
+	return n
 }
 
 func Is(err error, target error) bool {

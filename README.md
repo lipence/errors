@@ -82,6 +82,7 @@ func readSomethingElse(path string) ([]byte, error) {
 ```
 
 ## Output Example
+
 Console:
 
 ```log
@@ -104,6 +105,7 @@ e0003: Cant Process File
 ```
 
 JSON:
+
 ```json
 [
     {

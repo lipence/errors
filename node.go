@@ -1,8 +1,6 @@
 package errors
 
 import (
-	"sync"
-
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
@@ -10,9 +8,17 @@ import (
 type node struct {
 	tracer
 	data       []Field
-	dataRWM    sync.RWMutex
 	underlying *underlying
 	cause      error
+}
+
+func (e *node) clone() *node {
+	return &node{
+		tracer:     e.tracer,
+		data:       e.data,
+		underlying: e.underlying,
+		cause:      e.cause,
+	}
 }
 
 func (e *node) Is(target error) bool {
@@ -47,7 +53,7 @@ func (e *node) Error() string {
 }
 
 func (e *node) Code() (code string) {
-	if e.cause != nil {
+	if e.cause != nil && e.cause != (*node)(nil) {
 		if cm, ok := e.cause.(Message); ok {
 			if code = cm.Code(); code != "" {
 				return code
@@ -63,7 +69,7 @@ func (e *node) Code() (code string) {
 }
 
 func (e *node) Message() (message string) {
-	if e.cause != nil {
+	if e.cause != nil && e.cause != (*node)(nil) {
 		if cm, ok := e.cause.(Message); ok {
 			if message = cm.Message(); message != "" {
 				return message
@@ -78,23 +84,11 @@ func (e *node) Message() (message string) {
 	return ""
 }
 
-func (e *node) WithData(fields ...Field) *node {
-	if e == nil {
-		return nil
-	}
-	e.dataRWM.Lock()
-	e.data = append(e.data, fields...)
-	e.dataRWM.Unlock()
-	return e
-}
-
 func (e *node) DataMap() map[string]interface{} {
 	var me = zapcore.NewMapObjectEncoder()
-	e.dataRWM.RLock()
 	for i := 0; i < len(e.data); i++ {
 		e.data[i].AddTo(me)
 	}
-	e.dataRWM.RUnlock()
 	return me.Fields
 }
 
@@ -178,6 +172,9 @@ type nodeInfoItem struct {
 func (e *node) InfoStack(parent *node) []nodeInfoItem {
 	var stack []nodeInfoItem
 	var nodeItem nodeInfoItem
+	if e == nil {
+		return nil
+	}
 	if e.cause != nil {
 		if causeNode, ok := e.cause.(*node); ok {
 			stack = causeNode.InfoStack(e)
@@ -192,11 +189,9 @@ func (e *node) InfoStack(parent *node) []nodeInfoItem {
 	if e.underlying != nil {
 		nodeItem = nodeInfoItem{Underlying: toJSONMarshalable(e.underlying)}
 	}
-	e.dataRWM.RLock()
 	if len(e.data) > 0 {
 		nodeItem.Data = e.data
 	}
-	e.dataRWM.RUnlock()
 	if parent != nil {
 		nodeItem.StackTrace = e.tracer.InfoStack(&parent.tracer)
 	} else {
